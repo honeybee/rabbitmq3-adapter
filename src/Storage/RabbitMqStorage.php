@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\RabbitMq\Storage;
+namespace Honeybee\RabbitMq3\Storage;
 
 use Honeybee\Infrastructure\DataAccess\Storage\Storage;
 

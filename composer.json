@@ -24,10 +24,10 @@
         "squizlabs/php_codesniffer": "^2.8"
     },
     "autoload": {
-        "psr-4": { "Honeybee\\RabbitMq\\": "src" }
+        "psr-4": { "Honeybee\\RabbitMq3\\": "src" }
     },
     "autoload-dev": {
-        "psr-4": { "Honeybee\\Tests\\RabbitMq\\" : "tests" }
+        "psr-4": { "Honeybee\\Tests\\RabbitMq3\\" : "tests" }
     },
     "scripts": {
         "test": "phpunit",

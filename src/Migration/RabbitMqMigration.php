@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\RabbitMq\Migration;
+namespace Honeybee\RabbitMq3\Migration;
 
 use Assert\Assertion;
 use Honeybee\Infrastructure\Migration\Migration;

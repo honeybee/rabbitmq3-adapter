@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\RabbitMq\Job;
+namespace Honeybee\RabbitMq3\Job;
 
 use Assert\Assertion;
 use Closure;
@@ -12,7 +12,7 @@ use Honeybee\Infrastructure\Event\FailedJobEvent;
 use Honeybee\Infrastructure\Job\JobInterface;
 use Honeybee\Infrastructure\Job\JobMap;
 use Honeybee\Infrastructure\Job\JobServiceInterface;
-use Honeybee\RabbitMq\Connector\RabbitMqConnector;
+use Honeybee\RabbitMq3\Connector\RabbitMqConnector;
 use Honeybee\ServiceLocatorInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerInterface;

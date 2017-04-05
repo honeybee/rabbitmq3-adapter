@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\RabbitMq\Job;
+namespace Honeybee\Tests\RabbitMq3\Job;
 
 use Honeybee\Infrastructure\Config\ArrayConfig;
 use Honeybee\Infrastructure\Config\Settings;
@@ -11,9 +11,10 @@ use Honeybee\Infrastructure\Job\JobInterface;
 use Honeybee\Infrastructure\Job\JobMap;
 use Honeybee\Infrastructure\Job\JobService;
 use Honeybee\Infrastructure\Job\Strategy\Retry\RetryStrategyInterface;
-use Honeybee\RabbitMq\Connector\RabbitMqConnector;
+use Honeybee\RabbitMq3\Connector\RabbitMqConnector;
+use Honeybee\RabbitMq3\Job\RabbitMqJobService;
 use Honeybee\ServiceLocatorInterface;
-use Honeybee\Tests\RabbitMq\TestCase;
+use Honeybee\Tests\RabbitMq3\TestCase;
 use PhpAmqpLib\Channel\AbstractChannel;
 use PhpAmqpLib\Connection\AbstractConnection;
 use PhpAmqpLib\Message\AMQPMessage;

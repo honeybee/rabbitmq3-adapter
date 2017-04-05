@@ -1,13 +1,13 @@
 <?php
 
-namespace Honeybee\RabbitMq\Storage\StructureVersionList;
+namespace Honeybee\RabbitMq3\Storage\StructureVersionList;
 
 use Honeybee\Infrastructure\Config\SettingsInterface;
 use Honeybee\Infrastructure\DataAccess\Storage\StorageReaderInterface;
 use Honeybee\Infrastructure\DataAccess\Storage\StorageReaderIterator;
 use Honeybee\Infrastructure\Migration\StructureVersion;
 use Honeybee\Infrastructure\Migration\StructureVersionList;
-use Honeybee\RabbitMq\Storage\RabbitMqStorage;
+use Honeybee\RabbitMq3\Storage\RabbitMqStorage;
 
 class StructureVersionListReader extends RabbitMqStorage implements StorageReaderInterface
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\Tests\RabbitMq;
+namespace Honeybee\Tests\RabbitMq3;
 
 use Mockery\Adapter\Phpunit\MockeryTestCase;
 

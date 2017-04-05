@@ -1,6 +1,6 @@
 <?php
 
-namespace Honeybee\RabbitMq\Connector;
+namespace Honeybee\RabbitMq3\Connector;
 
 use Exception;
 use Honeybee\Infrastructure\DataAccess\Connector\Connector;
