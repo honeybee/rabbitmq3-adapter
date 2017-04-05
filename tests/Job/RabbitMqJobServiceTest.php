@@ -9,7 +9,6 @@ use Honeybee\Infrastructure\Event\EventInterface;
 use Honeybee\Infrastructure\Event\FailedJobEvent;
 use Honeybee\Infrastructure\Job\JobInterface;
 use Honeybee\Infrastructure\Job\JobMap;
-use Honeybee\Infrastructure\Job\JobService;
 use Honeybee\Infrastructure\Job\Strategy\Retry\RetryStrategyInterface;
 use Honeybee\RabbitMq3\Connector\RabbitMqConnector;
 use Honeybee\RabbitMq3\Job\RabbitMqJobService;
