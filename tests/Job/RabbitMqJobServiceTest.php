@@ -22,37 +22,37 @@ use Mockery;
 
 class RabbitMqJobServiceTest extends TestCase
 {
-    protected $mock_service_locator;
+    protected $mockServiceLocator;
 
-    protected $mock_connector;
+    protected $mockConnector;
 
-    protected $mock_connection;
+    protected $mockConnection;
 
-    protected $mock_channel;
+    protected $mockChannel;
 
-    protected $mock_job;
+    protected $mockJob;
 
-    protected $mock_event_bus;
+    protected $mockEventBus;
 
-    protected $mock_closure;
+    protected $mockClosure;
 
     public function setUp()
     {
-        $this->mock_service_locator = Mockery::mock(ServiceLocatorInterface::CLASS);
-        $this->mock_connector = Mockery::mock(RabbitMqConnector::CLASS);
-        $this->mock_connector->shouldReceive('isConnected')->never();
-        $this->mock_connection = Mockery::mock(AbstractConnection::CLASS);
-        $this->mock_channel = Mockery::mock(AbstractChannel::CLASS);
-        $this->mock_job = Mockery::mock(JobInterface::CLASS);
-        $this->mock_event_bus = Mockery::mock(EventBusInterface::CLASS);
-        $this->mock_closure = function () {
-        };
+        $this->mockServiceLocator = Mockery::mock(ServiceLocatorInterface::CLASS);
+        $this->mockConnector = Mockery::mock(RabbitMqConnector::CLASS);
+        $this->mockConnector->shouldReceive('isConnected')->never();
+        $this->mockConnection = Mockery::mock(AbstractConnection::CLASS);
+        $this->mockChannel = Mockery::mock(AbstractChannel::CLASS);
+        $this->mockJob = Mockery::mock(JobInterface::CLASS);
+        $this->mockEventBus = Mockery::mock(EventBusInterface::CLASS);
+        $this->mockClosure = function () {
+        }; //@codeCoverageIgnore
     }
 
     public function testDispatch()
     {
         $expected = $this->getAMQPMessage([ 'data' => 'state' ]);
-        $this->mock_channel->shouldReceive('basic_publish')
+        $this->mockChannel->shouldReceive('basic_publish')
             ->once()
             ->with(
                 Mockery::on(
@@ -64,23 +64,23 @@ class RabbitMqJobServiceTest extends TestCase
                 'exchange',
                 'route'
             );
-        $this->mock_connection->shouldReceive('channel')->once()->andReturn($this->mock_channel);
-        $this->mock_connector->shouldReceive('getConnection')->once()->andReturn($this->mock_connection);
+        $this->mockConnection->shouldReceive('channel')->once()->andReturn($this->mockChannel);
+        $this->mockConnector->shouldReceive('getConnection')->once()->andReturn($this->mockConnection);
 
-        $this->mock_job->shouldReceive('toArray')->andReturn([ 'data' => 'state' ]);
-        $this->mock_job->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 'route' ]));
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
-            $job_map = new JobMap([ 'job' => [ 'state' ] ]),
+        $this->mockJob->shouldReceive('toArray')->andReturn([ 'data' => 'state' ]);
+        $this->mockJob->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 'route' ]));
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
+            $jobMap = new JobMap([ 'job' => [ 'state' ] ]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertEquals($job_map, $job_service->getJobMap());
-        $this->assertEquals(new Settings([ 'state' ]), $job_service->getJob('job'));
-        $this->assertNull($job_service->dispatch($this->mock_job, 'exchange'));
+        $this->assertEquals($jobMap, $jobService->getJobMap());
+        $this->assertEquals(new Settings([ 'state' ]), $jobService->getJob('job'));
+        $this->assertNull($jobService->dispatch($this->mockJob, 'exchange'));
     }
 
     /**
@@ -88,56 +88,56 @@ class RabbitMqJobServiceTest extends TestCase
      */
     public function testDispatchInvalidExchange()
     {
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->mock_job->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 'route' ]));
-        $job_service->dispatch($this->mock_job, []);
-    }
+        $this->mockJob->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 'route' ]));
+        $jobService->dispatch($this->mockJob, []);
+    } //@codeCoverageIgnore
 
     /**
      * @expectedException Assert\InvalidArgumentException
      */
     public function testDispatchInvalidRoutingKey()
     {
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->mock_job->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 7 ]));
-        $job_service->dispatch($this->mock_job, 'exchange');
-    }
+        $this->mockJob->shouldReceive('getSettings')->andReturn(new Settings([ 'routing_key' => 7 ]));
+        $jobService->dispatch($this->mockJob, 'exchange');
+    } //@codeCoverageIgnore
 
     public function testConsume()
     {
-        $this->mock_channel->shouldReceive('basic_qos')->once()->with(null, 1, null);
-        $this->mock_channel->shouldReceive('basic_consume')
+        $this->mockChannel->shouldReceive('basic_qos')->once()->with(null, 1, null);
+        $this->mockChannel->shouldReceive('basic_consume')
             ->once()
-            ->with('queue', false, true, false, false, false, $this->mock_closure);
-        $this->mock_connection->shouldReceive('channel')->once()->andReturn($this->mock_channel);
-        $this->mock_connector->shouldReceive('getConnection')->once()->andReturn($this->mock_connection);
+            ->with('queue', false, true, false, false, false, $this->mockClosure);
+        $this->mockConnection->shouldReceive('channel')->once()->andReturn($this->mockChannel);
+        $this->mockConnector->shouldReceive('getConnection')->once()->andReturn($this->mockConnection);
 
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertEquals($this->mock_channel, $job_service->consume('queue', $this->mock_closure));
+        $this->assertEquals($this->mockChannel, $jobService->consume('queue', $this->mockClosure));
     }
 
     /**
@@ -145,34 +145,34 @@ class RabbitMqJobServiceTest extends TestCase
      */
     public function testConsumeEmptyQueue()
     {
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertEquals($this->mock_channel, $job_service->consume('', $this->mock_closure));
-    }
+        $this->assertEquals($this->mockChannel, $jobService->consume('', $this->mockClosure));
+    } //@codeCoverageIgnore
 
     /**
      * @expectedException Assert\InvalidArgumentException
      */
     public function testConsumeInvalidQueue()
     {
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertEquals($this->mock_channel, $job_service->consume(9, $this->mock_closure));
-    }
+        $this->assertEquals($this->mockChannel, $jobService->consume(9, $this->mockClosure));
+    } //@codeCoverageIgnore
 
     public function testRetry()
     {
@@ -180,7 +180,7 @@ class RabbitMqJobServiceTest extends TestCase
             [ 'job' => 'state', 'metadata' => [ 'retries' => 1 ] ],
             [ 'delivery_mode' => 2, 'expiration' => 123 ]
         );
-        $this->mock_channel
+        $this->mockChannel
             ->shouldReceive('basic_publish')
             ->once()
             ->with(
@@ -193,24 +193,24 @@ class RabbitMqJobServiceTest extends TestCase
                 'exchange',
                 'route'
             );
-        $this->mock_connection->shouldReceive('channel')->once()->andReturn($this->mock_channel);
-        $this->mock_connector->shouldReceive('getConnection')->once()->andReturn($this->mock_connection);
-        $this->mock_strategy = Mockery::mock(RetryStrategyInterface::CLASS);
-        $this->mock_strategy->shouldReceive('getRetryInterval')->once()->andReturn(123);
-        $this->mock_job->shouldReceive('getSettings')->once()->andReturn(new Settings([ 'routing_key' => 'route' ]));
-        $this->mock_job->shouldReceive('toArray')->once()->andReturn([ 'job' => 'state' ]);
-        $this->mock_job->shouldReceive('getStrategy')->once()->andReturn($this->mock_strategy);
+        $this->mockConnection->shouldReceive('channel')->once()->andReturn($this->mockChannel);
+        $this->mockConnector->shouldReceive('getConnection')->once()->andReturn($this->mockConnection);
+        $this->mockStrategy = Mockery::mock(RetryStrategyInterface::CLASS);
+        $this->mockStrategy->shouldReceive('getRetryInterval')->once()->andReturn(123);
+        $this->mockJob->shouldReceive('getSettings')->once()->andReturn(new Settings([ 'routing_key' => 'route' ]));
+        $this->mockJob->shouldReceive('toArray')->once()->andReturn([ 'job' => 'state' ]);
+        $this->mockJob->shouldReceive('getStrategy')->once()->andReturn($this->mockStrategy);
 
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertNull($job_service->retry($this->mock_job, 'exchange', []));
+        $this->assertNull($jobService->retry($this->mockJob, 'exchange', []));
     }
 
     public function testFail()
@@ -219,8 +219,8 @@ class RabbitMqJobServiceTest extends TestCase
             'failed_job_state' => [ 'job' => 'state' ],
             'metadata' => [ 'message' => 'fail' ]
         ]);
-        $this->mock_job->shouldReceive('toArray')->once()->andReturn([ 'job' => 'state' ]);
-        $this->mock_event_bus
+        $this->mockJob->shouldReceive('toArray')->once()->andReturn([ 'job' => 'state' ]);
+        $this->mockEventBus
             ->shouldReceive('distribute')
             ->once()
             ->with(
@@ -237,19 +237,19 @@ class RabbitMqJobServiceTest extends TestCase
                 )
             );
 
-        $job_service = new RabbitMqJobService(
-            $this->mock_connector,
-            $this->mock_service_locator,
-            $this->mock_event_bus,
+        $jobService = new RabbitMqJobService(
+            $this->mockConnector,
+            $this->mockServiceLocator,
+            $this->mockEventBus,
             new JobMap([]),
             new ArrayConfig([]),
             new NullLogger
         );
 
-        $this->assertNull($job_service->fail($this->mock_job, [ 'message' => 'fail' ]));
+        $this->assertNull($jobService->fail($this->mockJob, [ 'message' => 'fail' ]));
     }
 
-    protected function getAMQPMessage(array $payload, array $options = [])
+    private function getAMQPMessage(array $payload, array $options = [])
     {
         return new AMQPMessage(
             json_encode($payload),

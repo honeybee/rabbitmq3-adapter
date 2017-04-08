@@ -21,11 +21,11 @@ class RabbitMqJobService implements JobServiceInterface
 {
     protected $connector;
 
-    protected $service_locator;
+    protected $serviceLocator;
 
-    protected $event_bus;
+    protected $eventBus;
 
-    protected $job_map;
+    protected $jobMap;
 
     protected $config;
 
@@ -35,70 +35,70 @@ class RabbitMqJobService implements JobServiceInterface
 
     public function __construct(
         RabbitMqConnector $connector,
-        ServiceLocatorInterface $service_locator,
-        EventBusInterface $event_bus,
-        JobMap $job_map,
+        ServiceLocatorInterface $serviceLocator,
+        EventBusInterface $eventBus,
+        JobMap $jobMap,
         ConfigInterface $config,
         LoggerInterface $logger
     ) {
         $this->config = $config;
-        $this->service_locator = $service_locator;
-        $this->event_bus = $event_bus;
-        $this->job_map = $job_map;
+        $this->serviceLocator = $serviceLocator;
+        $this->eventBus = $eventBus;
+        $this->jobMap = $jobMap;
         $this->connector = $connector;
         $this->logger = $logger;
     }
 
-    public function dispatch(JobInterface $job, $exchange_name)
+    public function dispatch(JobInterface $job, $exchangeName)
     {
-        $routing_key = $job->getSettings()->get('routing_key', '');
+        $routingKey = $job->getSettings()->get('routing_key', '');
 
-        Assertion::string($exchange_name);
-        Assertion::string($routing_key);
+        Assertion::string($exchangeName);
+        Assertion::string($routingKey);
 
-        $message_payload = json_encode($job->toArray());
-        $message = new AMQPMessage($message_payload, [ 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT ]);
+        $messagePayload = json_encode($job->toArray());
+        $message = new AMQPMessage($messagePayload, ['delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT]);
 
-        $this->getChannel()->basic_publish($message, $exchange_name, $routing_key);
+        $this->getChannel()->basic_publish($message, $exchangeName, $routingKey);
     }
 
-    public function consume($queue_name, Closure $message_callback)
+    public function consume($queueName, Closure $messageCallback)
     {
-        Assertion::string($queue_name);
-        Assertion::notEmpty($queue_name);
+        Assertion::string($queueName);
+        Assertion::notEmpty($queueName);
 
         $channel = $this->getChannel();
 
         $channel->basic_qos(null, 1, null);
-        $channel->basic_consume($queue_name, false, true, false, false, false, $message_callback);
+        $channel->basic_consume($queueName, false, true, false, false, false, $messageCallback);
 
         return $channel;
     }
 
-    public function retry(JobInterface $job, $exchange_name, array $metadata = [])
+    public function retry(JobInterface $job, $exchangeName, array $metadata = [])
     {
-        $routing_key = $job->getSettings()->get('routing_key', '');
+        $routingKey = $job->getSettings()->get('routing_key', '');
 
-        Assertion::string($exchange_name);
-        Assertion::string($routing_key);
+        Assertion::string($exchangeName);
+        Assertion::string($routingKey);
 
-        $job_state = $job->toArray();
-        $job_state['metadata']['retries'] = isset($job_state['metadata']['retries'])
-            ? ++$job_state['metadata']['retries'] : 1;
+        $jobState = $job->toArray();
+        $jobState['metadata']['retries'] = isset($jobState['metadata']['retries'])
+            ? ++$jobState['metadata']['retries'] : 1;
 
         /*
          * @todo better to retry by distributing the event back on the event bus and
          * calculating the expiration at that stage
          */
         $message = new AMQPMessage(
-            json_encode($job_state),
+            json_encode($jobState),
             [
                 'delivery_mode' => AMQPMessage::DELIVERY_MODE_PERSISTENT,
                 'expiration' => $job->getStrategy()->getRetryInterval()
             ]
         );
 
-        $this->getChannel()->basic_publish($message, $exchange_name, $routing_key);
+        $this->getChannel()->basic_publish($message, $exchangeName, $routingKey);
     }
 
     public function fail(JobInterface $job, array $metadata = [])
@@ -108,66 +108,66 @@ class RabbitMqJobService implements JobServiceInterface
             'metadata' => $metadata
         ]);
 
-        $this->event_bus->distribute(ChannelMap::CHANNEL_FAILED, $event);
+        $this->eventBus->distribute(ChannelMap::CHANNEL_FAILED, $event);
     }
 
     /**
      * @todo Job building and JobMap should be provisioned and injected where required, and
      * so the following public methods are not specified on the interface.
      */
-    public function createJob(array $job_state)
+    public function createJob(array $jobState)
     {
-        if (!isset($job_state['metadata']['job_name']) || empty($job_state['metadata']['job_name'])) {
+        if (!isset($jobState['metadata']['job_name']) || empty($jobState['metadata']['job_name'])) {
             throw new RuntimeError('Unable to get job name from metadata.');
         }
 
-        $job_name = $job_state['metadata']['job_name'];
+        $jobName = $jobState['metadata']['job_name'];
 
-        $job_config = $this->getJob($job_name);
-        $strategy_config = $job_config['strategy'];
-        $service_locator = $this->service_locator;
+        $jobConfig = $this->getJob($jobName);
+        $strategyConfig = $jobConfig['strategy'];
+        $serviceLocator = $this->serviceLocator;
 
-        $strategy_callback = function (JobInterface $job) use ($service_locator, $strategy_config) {
-            $strategy_implementor = $strategy_config['implementor'];
+        $strategyCallback = function (JobInterface $job) use ($serviceLocator, $strategyConfig) {
+            $strategyImplementor = $strategyConfig['implementor'];
 
-            $retry_strategy = $service_locator->make(
-                $strategy_config['retry']['implementor'],
-                [ ':job' => $job, ':settings' => $strategy_config['retry']['settings'] ]
+            $retryStrategy = $serviceLocator->make(
+                $strategyConfig['retry']['implementor'],
+                [':job' => $job, ':settings' => $strategyConfig['retry']['settings']]
             );
 
-            $failure_strategy = $service_locator->make(
-                $strategy_config['failure']['implementor'],
-                [ ':job' => $job, ':settings' => $strategy_config['failure']['settings'] ]
+            $failureStrategy = $serviceLocator->make(
+                $strategyConfig['failure']['implementor'],
+                [':job' => $job, ':settings' => $strategyConfig['failure']['settings']]
             );
 
-            return new $strategy_implementor($retry_strategy, $failure_strategy);
+            return new $strategyImplementor($retryStrategy, $failureStrategy);
         };
 
-        return $this->service_locator->make(
-            $job_config['class'],
+        return $this->serviceLocator->make(
+            $jobConfig['class'],
             [
                 // job class cannot be overridden by state
-                ':state' => [ '@type' => $job_config['class'] ] + $job_state,
-                ':strategy_callback' => $strategy_callback,
-                ':settings' => $job_config['settings']
+                ':state' => ['@type' => $jobConfig['class']] + $jobState,
+                ':strategy_callback' => $strategyCallback,
+                ':settings' => $jobConfig['settings']
             ]
         );
     }
 
     public function getJobMap()
     {
-        return $this->job_map;
+        return $this->jobMap;
     }
 
-    public function getJob($job_name)
+    public function getJob($jobName)
     {
-        $job_config = $this->job_map->get($job_name);
+        $jobConfig = $this->jobMap->get($jobName);
 
-        if (!$job_config) {
-            throw new RuntimeError(sprintf('Configuration for job "%s" was not found.', $job_name));
+        if (!$jobConfig) {
+            throw new RuntimeError(sprintf('Configuration for job "%s" was not found.', $jobName));
         }
 
-        return $job_config;
+        return $jobConfig;
     }
 
     protected function getChannel()

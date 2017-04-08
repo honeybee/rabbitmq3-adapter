@@ -8,8 +8,9 @@ abstract class RabbitMqStorage extends Storage
 {
     protected function getExchangeBindings()
     {
-        $vhost = $this->getConfig()->get('vhost', '%2f');
-        $exchange = $this->getConfig()->get('exchange');
+        $config = $this->getConfig();
+        $vhost = $config->get('vhost', '%2f');
+        $exchange = $config->get('exchange');
 
         $endpoint = "/api/exchanges/$vhost/$exchange/bindings/source";
         return (array)$this->connector->getFromAdminApi($endpoint);

@@ -39,11 +39,11 @@ class RabbitMqConnector extends Connector
 
         $vhost = $this->config->get('vhost', '/');
         $insist = $this->config->get('insist', false);
-        $login_method = $this->config->get('login_method', 'AMQPLAIN');
-        $login_response = null;
+        $loginMethod = $this->config->get('login_method', 'AMQPLAIN');
+        $loginResponse = null;
         $locale = $this->config->get('locale', 'en_US');
-        $connection_timeout = (int)$this->config->get('connection_timeout', 3);
-        $read_write_timeout = (int)$this->config->get('read_write_timeout', 3);
+        $connectionTimeout = (int)$this->config->get('connection_timeout', 3);
+        $readWriteTimeout = (int)$this->config->get('read_write_timeout', 3);
         $context = null;
         $keepalive = $this->config->get('keepalive', true);
 
@@ -58,11 +58,11 @@ class RabbitMqConnector extends Connector
             $password,
             $vhost,
             $insist,
-            $login_method,
-            $login_response,
+            $loginMethod,
+            $loginResponse,
             $locale,
-            $connection_timeout,
-            $read_write_timeout,
+            $connectionTimeout,
+            $readWriteTimeout,
             $context,
             $keepalive,
             $heartbeat
@@ -104,7 +104,7 @@ class RabbitMqConnector extends Connector
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->buildAdminUrl($endpoint));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [ 'content-type:application/json' ]);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['content-type:application/json']);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -159,7 +159,7 @@ class RabbitMqConnector extends Connector
             error_log(
                 '[' . static::CLASS . '] Error on status check: ' . $e->getMessage() . "\n" . $e->getTraceAsString()
             );
-            return Status::failing($this, [ 'error' => $e->getMessage() ]);
+            return Status::failing($this, ['error' => $e->getMessage()]);
         }
     }
 }

@@ -19,83 +19,83 @@ abstract class RabbitMqMigration extends Migration
     const REPUB_INTERVAL = 30000; //30 seconds
 
     protected function createQueue(
-        MigrationTargetInterface $migration_target,
-        $exchange_name,
-        $queue_name,
-        $routing_key
+        MigrationTargetInterface $migrationTarget,
+        $exchangeName,
+        $queueName,
+        $routingKey
     ) {
-        Assertion::string($exchange_name);
-        Assertion::string($routing_key);
-        Assertion::string($queue_name);
+        Assertion::string($exchangeName);
+        Assertion::string($routingKey);
+        Assertion::string($queueName);
 
-        $channel = $this->getConnection($migration_target)->channel();
-        $channel->queue_declare($queue_name, false, true, false, false);
-        $channel->queue_bind($queue_name, $exchange_name, $routing_key);
+        $channel = $this->getConnection($migrationTarget)->channel();
+        $channel->queue_declare($queueName, false, true, false, false);
+        $channel->queue_bind($queueName, $exchangeName, $routingKey);
     }
 
-    protected function createVersionList(MigrationTargetInterface $migration_target, $exchange_name)
+    protected function createVersionList(MigrationTargetInterface $migrationTarget, $exchangeName)
     {
-        Assertion::string($exchange_name);
+        Assertion::string($exchangeName);
 
-        $channel = $this->getConnection($migration_target)->channel();
-        $channel->exchange_declare($exchange_name, 'topic', false, true, false, true);
+        $channel = $this->getConnection($migrationTarget)->channel();
+        $channel->exchange_declare($exchangeName, 'topic', false, true, false, true);
     }
 
-    protected function createExchangePipeline(MigrationTargetInterface $migration_target, $exchange_name)
+    protected function createExchangePipeline(MigrationTargetInterface $migrationTarget, $exchangeName)
     {
-        Assertion::string($exchange_name);
+        Assertion::string($exchangeName);
 
-        $wait_exchange_name = $exchange_name . self::WAIT_SUFFIX;
-        $wait_queue_name = $wait_exchange_name . self::QUEUE_SUFFIX;
-        $unrouted_exchange_name = $exchange_name . self::UNROUTED_SUFFIX;
-        $unrouted_queue_name = $unrouted_exchange_name . self::QUEUE_SUFFIX;
-        $repub_exchange_name = $exchange_name . self::REPUB_SUFFIX;
-        $repub_queue_name = $repub_exchange_name . self::QUEUE_SUFFIX;
+        $waitExchangeName = $exchangeName . self::WAIT_SUFFIX;
+        $waitQueueName = $waitExchangeName . self::QUEUE_SUFFIX;
+        $unroutedExchangeName = $exchangeName . self::UNROUTED_SUFFIX;
+        $unroutedQueueName = $unroutedExchangeName . self::QUEUE_SUFFIX;
+        $repubExchangeName = $exchangeName . self::REPUB_SUFFIX;
+        $repubQueueName = $repubExchangeName . self::QUEUE_SUFFIX;
 
-        $channel = $this->getConnection($migration_target)->channel();
+        $channel = $this->getConnection($migrationTarget)->channel();
 
         // Setup the default exchange and queue pipelines
-        $channel->exchange_declare($unrouted_exchange_name, 'fanout', false, true, false, true); //internal
-        $channel->exchange_declare($repub_exchange_name, 'fanout', false, true, false, true); //internal
-        $channel->exchange_declare($wait_exchange_name, 'fanout', false, true, false);
-        $channel->exchange_declare($exchange_name, 'direct', false, true, false, false, false, [
-            'alternate-exchange' => [ 'S', $unrouted_exchange_name ]
+        $channel->exchange_declare($unroutedExchangeName, 'fanout', false, true, false, true); //internal
+        $channel->exchange_declare($repubExchangeName, 'fanout', false, true, false, true); //internal
+        $channel->exchange_declare($waitExchangeName, 'fanout', false, true, false);
+        $channel->exchange_declare($exchangeName, 'direct', false, true, false, false, false, [
+            'alternate-exchange' => ['S', $unroutedExchangeName]
         ]);
-        $channel->queue_declare($wait_queue_name, false, true, false, false, false, [
-            'x-dead-letter-exchange' => [ 'S', $exchange_name ]
+        $channel->queue_declare($waitQueueName, false, true, false, false, false, [
+            'x-dead-letter-exchange' => ['S', $exchangeName]
         ]);
-        $channel->queue_bind($wait_queue_name, $wait_exchange_name);
-        $channel->queue_declare($unrouted_queue_name, false, true, false, false, false, [
-            'x-dead-letter-exchange' => [ 'S', $repub_exchange_name ],
-            'x-message-ttl' => [ 'I', self::REPUB_INTERVAL ]
+        $channel->queue_bind($waitQueueName, $waitExchangeName);
+        $channel->queue_declare($unroutedQueueName, false, true, false, false, false, [
+            'x-dead-letter-exchange' => ['S', $repubExchangeName],
+            'x-message-ttl' => ['I', self::REPUB_INTERVAL]
         ]);
-        $channel->queue_bind($unrouted_queue_name, $unrouted_exchange_name);
-        $channel->queue_declare($repub_queue_name, false, true, false, false);
-        $channel->queue_bind($repub_queue_name, $repub_exchange_name);
+        $channel->queue_bind($unroutedQueueName, $unroutedExchangeName);
+        $channel->queue_declare($repubQueueName, false, true, false, false);
+        $channel->queue_bind($repubQueueName, $repubExchangeName);
 
-        $this->createShovel($migration_target, $repub_exchange_name, $exchange_name, $repub_queue_name);
+        $this->createShovel($migrationTarget, $repubExchangeName, $exchangeName, $repubQueueName);
     }
 
     protected function createShovel(
-        MigrationTargetInterface $migration_target,
-        $src_exchange_name,
-        $dest_exchange_name,
-        $src_queue
+        MigrationTargetInterface $migrationTarget,
+        $srcExchangeName,
+        $destExchangeName,
+        $srcQueue
     ) {
-        $connector = $migration_target->getTargetConnector();
+        $connector = $migrationTarget->getTargetConnector();
 
         $endpoint = sprintf(
             '/api/parameters/shovel/%s/%s.shovel',
             $connector->getConfig()->get('vhost', '%2f'),
-            $src_exchange_name
+            $srcExchangeName
         );
 
         $body = [
             'value' => [
                 'src-uri' => 'amqp://',
-                'src-queue' => $src_queue,
+                'src-queue' => $srcQueue,
                 'dest-uri' => 'amqp://',
-                'dest-exchange' => $dest_exchange_name,
+                'dest-exchange' => $destExchangeName,
                 'add-forward-headers' => false,
                 'ack-mode' => 'on-confirm',
                 'delete-after' => 'never'

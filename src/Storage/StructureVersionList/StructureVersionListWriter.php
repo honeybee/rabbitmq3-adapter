@@ -12,29 +12,29 @@ use Honeybee\RabbitMq3\Storage\RabbitMqStorage;
 
 class StructureVersionListWriter extends RabbitMqStorage implements StorageWriterInterface
 {
-    public function write($structure_version_list, SettingsInterface $settings = null)
+    public function write($structureVersionList, SettingsInterface $settings = null)
     {
-        Assertion::isInstanceOf($structure_version_list, StructureVersionList::CLASS);
+        Assertion::isInstanceOf($structureVersionList, StructureVersionList::CLASS);
 
         $exchange = $this->getConfig()->get('exchange');
         $channel = $this->connector->getConnection()->channel();
 
         // delete existing bindings by identifier & arguments
-        foreach ($structure_version_list as $structure_version) {
+        foreach ($structureVersionList as $structureVersion) {
             $this->delete(
-                $structure_version_list->getIdentifier(),
-                new Settings([ 'arguments' => $this->buildArguments($structure_version) ])
+                $structureVersionList->getIdentifier(),
+                new Settings(['arguments' => $this->buildArguments($structureVersion)])
             );
         }
 
         // recreate all the bindings
-        foreach ($structure_version_list as $structure_version) {
+        foreach ($structureVersionList as $structureVersion) {
             $channel->exchange_bind(
                 $exchange,
                 $exchange,
-                $structure_version_list->getIdentifier(),
+                $structureVersionList->getIdentifier(),
                 false,
-                $this->buildArguments($structure_version)
+                $this->buildArguments($structureVersion)
             );
         }
     }
@@ -50,13 +50,13 @@ class StructureVersionListWriter extends RabbitMqStorage implements StorageWrite
         $channel->exchange_unbind($exchange, $exchange, $identifier, false, $arguments->toArray());
     }
 
-    protected function buildArguments(StructureVersion $structure_version)
+    protected function buildArguments(StructureVersion $structureVersion)
     {
         return [
-            '@type' => [ 'S', get_class($structure_version) ],
-            'target_name' => [ 'S', $structure_version->getTargetName() ],
-            'version' => [ 'S', $structure_version->getVersion() ],
-            'created_date' => [ 'S', $structure_version->getCreatedDate() ]
+            '@type' => ['S', get_class($structureVersion)],
+            'target_name' => ['S', $structureVersion->getTargetName()],
+            'version' => ['S', $structureVersion->getVersion()],
+            'created_date' => ['S', $structureVersion->getCreatedDate()]
         ];
     }
 }

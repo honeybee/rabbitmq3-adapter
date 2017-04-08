@@ -39,8 +39,8 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
         }
 
         $data = [];
-        foreach ($versions as $identifier => $version_list) {
-            $data[] = $this->createStructureVersionList($identifier, $version_list);
+        foreach ($versions as $identifier => $versionList) {
+            $data[] = $this->createStructureVersionList($identifier, $versionList);
         }
 
         return $data;
@@ -53,7 +53,7 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
 
     protected function createStructureVersionList($identifier, array $versions)
     {
-        $structure_version_list = new StructureVersionList($identifier);
+        $structureVersionList = new StructureVersionList($identifier);
 
         // sort version list
         usort($versions, function ($a, $b) {
@@ -61,9 +61,9 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
         });
 
         foreach ($versions as $version) {
-            $structure_version_list->push(new StructureVersion($version));
+            $structureVersionList->push(new StructureVersion($version));
         }
 
-        return $structure_version_list;
+        return $structureVersionList;
     }
 }
