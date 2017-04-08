@@ -1,5 +1,5 @@
 {
-    "name": "honeybee/rabbitmq3",
+    "name": "honeybee/rabbitmq3-adapter",
     "type": "library",
     "description": "RabbitMQ 3.x adapter for Honeybee.",
     "keywords": [ "honeybee", "rabbitmq", "adapter" ],
