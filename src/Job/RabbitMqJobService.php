@@ -4,34 +4,23 @@ namespace Honeybee\RabbitMq3\Job;
 
 use Assert\Assertion;
 use Closure;
-use Honeybee\Common\Error\RuntimeError;
 use Honeybee\Infrastructure\Config\ConfigInterface;
 use Honeybee\Infrastructure\Event\Bus\Channel\ChannelMap;
 use Honeybee\Infrastructure\Event\Bus\EventBusInterface;
 use Honeybee\Infrastructure\Event\FailedJobEvent;
 use Honeybee\Infrastructure\Job\JobInterface;
 use Honeybee\Infrastructure\Job\JobMap;
-use Honeybee\Infrastructure\Job\JobServiceInterface;
+use Honeybee\Infrastructure\Job\JobService;
 use Honeybee\RabbitMq3\Connector\RabbitMqConnector;
 use Honeybee\ServiceLocatorInterface;
 use PhpAmqpLib\Message\AMQPMessage;
 use Psr\Log\LoggerInterface;
 
-class RabbitMqJobService implements JobServiceInterface
+class RabbitMqJobService extends JobService
 {
-    protected $connector;
+    private $connector;
 
-    protected $serviceLocator;
-
-    protected $eventBus;
-
-    protected $jobMap;
-
-    protected $config;
-
-    protected $logger;
-
-    protected $channel;
+    private $channel;
 
     public function __construct(
         RabbitMqConnector $connector,
@@ -41,13 +30,10 @@ class RabbitMqJobService implements JobServiceInterface
         ConfigInterface $config,
         LoggerInterface $logger
     ) {
-        $this->config = $config;
-        $this->serviceLocator = $serviceLocator;
-        $this->eventBus = $eventBus;
-        $this->jobMap = $jobMap;
+        parent::__construct($serviceLocator, $eventBus, $jobMap, $config, $logger);
         $this->connector = $connector;
-        $this->logger = $logger;
     }
+
 
     public function dispatch(JobInterface $job, $exchangeName)
     {
@@ -109,65 +95,6 @@ class RabbitMqJobService implements JobServiceInterface
         ]);
 
         $this->eventBus->distribute(ChannelMap::CHANNEL_FAILED, $event);
-    }
-
-    /**
-     * @todo Job building and JobMap should be provisioned and injected where required, and
-     * so the following public methods are not specified on the interface.
-     */
-    public function createJob(array $jobState)
-    {
-        if (!isset($jobState['metadata']['job_name']) || empty($jobState['metadata']['job_name'])) {
-            throw new RuntimeError('Unable to get job name from metadata.');
-        }
-
-        $jobName = $jobState['metadata']['job_name'];
-
-        $jobConfig = $this->getJob($jobName);
-        $strategyConfig = $jobConfig['strategy'];
-        $serviceLocator = $this->serviceLocator;
-
-        $strategyCallback = function (JobInterface $job) use ($serviceLocator, $strategyConfig) {
-            $strategyImplementor = $strategyConfig['implementor'];
-
-            $retryStrategy = $serviceLocator->make(
-                $strategyConfig['retry']['implementor'],
-                [':job' => $job, ':settings' => $strategyConfig['retry']['settings']]
-            );
-
-            $failureStrategy = $serviceLocator->make(
-                $strategyConfig['failure']['implementor'],
-                [':job' => $job, ':settings' => $strategyConfig['failure']['settings']]
-            );
-
-            return new $strategyImplementor($retryStrategy, $failureStrategy);
-        };
-
-        return $this->serviceLocator->make(
-            $jobConfig['class'],
-            [
-                // job class cannot be overridden by state
-                ':state' => ['@type' => $jobConfig['class']] + $jobState,
-                ':strategy_callback' => $strategyCallback,
-                ':settings' => $jobConfig['settings']
-            ]
-        );
-    }
-
-    public function getJobMap()
-    {
-        return $this->jobMap;
-    }
-
-    public function getJob($jobName)
-    {
-        $jobConfig = $this->jobMap->get($jobName);
-
-        if (!$jobConfig) {
-            throw new RuntimeError(sprintf('Configuration for job "%s" was not found.', $jobName));
-        }
-
-        return $jobConfig;
     }
 
     protected function getChannel()

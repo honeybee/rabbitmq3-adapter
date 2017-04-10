@@ -18,16 +18,6 @@ class RabbitMqConnector extends Connector
      */
     protected function connect()
     {
-        // don't recreate the connection by default
-        if ($this->isConnected()) {
-            return $this->connection;
-        }
-
-        return $this->getFreshConnection();
-    }
-
-    protected function getFreshConnection()
-    {
         $this->needs('user')->needs('password');
 
         // https://github.com/videlalvaro/php-amqplib/blob/master/PhpAmqpLib/Connection/AMQPStreamConnection.php#L8-L39
@@ -148,7 +138,7 @@ class RabbitMqConnector extends Connector
         }
 
         try {
-            $conn = $this->getFreshConnection();
+            $conn = $this->getConnection();
             $conn->reconnect();
             $info = $conn->getServerProperties();
             return Status::working($this, [

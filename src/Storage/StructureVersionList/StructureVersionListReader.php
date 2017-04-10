@@ -2,6 +2,7 @@
 
 namespace Honeybee\RabbitMq3\Storage\StructureVersionList;
 
+use Assert\Assertion;
 use Honeybee\Infrastructure\Config\SettingsInterface;
 use Honeybee\Infrastructure\DataAccess\Storage\StorageReaderInterface;
 use Honeybee\Infrastructure\DataAccess\Storage\StorageReaderIterator;
@@ -13,6 +14,9 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
 {
     public function read($identifier, SettingsInterface $settings = null)
     {
+        Assertion::string($identifier);
+        Assertion::notBlank($identifier);
+
         $bindings = $this->getExchangeBindings();
 
         $versions = [];
@@ -53,7 +57,7 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
 
     protected function createStructureVersionList($identifier, array $versions)
     {
-        $structureVersionList = new StructureVersionList($identifier);
+        $structureVersions = [];
 
         // sort version list
         usort($versions, function ($a, $b) {
@@ -61,9 +65,9 @@ class StructureVersionListReader extends RabbitMqStorage implements StorageReade
         });
 
         foreach ($versions as $version) {
-            $structureVersionList->push(new StructureVersion($version));
+            $structureVersions[] = new StructureVersion($version);
         }
 
-        return $structureVersionList;
+        return new StructureVersionList($identifier, $structureVersions);
     }
 }
