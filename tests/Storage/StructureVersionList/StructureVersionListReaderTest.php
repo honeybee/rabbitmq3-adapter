@@ -4,13 +4,13 @@ namespace Honeybee\Tests\RabbitMq3\Storage\StructureVersionList;
 
 use Honeybee\Infrastructure\Config\ArrayConfig;
 use Honeybee\Infrastructure\DataAccess\Storage\StorageReaderIterator;
+use Honeybee\Infrastructure\Migration\StructureVersion;
+use Honeybee\Infrastructure\Migration\StructureVersionList;
 use Honeybee\RabbitMq3\Connector\RabbitMqConnector;
 use Honeybee\RabbitMq3\Storage\StructureVersionList\StructureVersionListReader;
 use Honeybee\Tests\RabbitMq3\TestCase;
 use Mockery;
 use Psr\Log\NullLogger;
-use Honeybee\Infrastructure\Migration\StructureVersionList;
-use Honeybee\Infrastructure\Migration\StructureVersion;
 
 class StructureVersionListReaderTest extends TestCase
 {
@@ -24,12 +24,12 @@ class StructureVersionListReaderTest extends TestCase
 
     public function testGetIterator()
     {
-        $versionReader = Mockery::mock(
+        $versionListReader = Mockery::mock(
             StructureVersionListReader::CLASS.'[readAll]',
             [$this->mockConnector, new ArrayConfig([]), new NullLogger()]
         );
-        $versionReader->shouldReceive('readAll')->once()->andReturn(['something']);
-        $iterator = $versionReader->getIterator();
+        $versionListReader->shouldReceive('readAll')->once()->andReturn(['something']);
+        $iterator = $versionListReader->getIterator();
         $this->assertInstanceOf(StorageReaderIterator::CLASS, $iterator);
         $this->assertTrue($iterator->valid());
     }
@@ -39,8 +39,8 @@ class StructureVersionListReaderTest extends TestCase
      */
     public function testReadEmptyIdentifier()
     {
-        $versionReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
-        $versionReader->read('');
+        $versionListReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
+        $versionListReader->read('');
     } //@codeCoverageIgnore
 
     /**
@@ -48,19 +48,31 @@ class StructureVersionListReaderTest extends TestCase
      */
     public function testReadNonStringIdentifier()
     {
-        $versionReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
-        $versionReader->read(['test_id']);
+        $versionListReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
+        $versionListReader->read(['test_id']);
     } //@codeCoverageIgnore
 
     /**
-     * @expectedException Honeybee\Common\Error\RuntimeError
+     * @expectedException Assert\InvalidArgumentException
      */
     public function testReadMissingExchange()
     {
-        $versionReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
+        $versionListReader = new StructureVersionListReader($this->mockConnector, new ArrayConfig([]), new NullLogger);
+        $versionListReader->read('test_id');
+    } //@codeCoverageIgnore
 
-        $expectedList = new StructureVersionList('test_id');
-        $this->assertEquals($expectedList, $versionReader->read('test_id'));
+    /**
+     * @expectedException Assert\InvalidArgumentException
+     */
+    public function testReadInvalidExchange()
+    {
+        $versionListReader = new StructureVersionListReader(
+            $this->mockConnector,
+            new ArrayConfig(['exchange' => '']),
+            new NullLogger
+        );
+
+        $versionListReader->read('test_id');
     } //@codeCoverageIgnore
 
     public function testReadEmpty()
@@ -69,13 +81,13 @@ class StructureVersionListReaderTest extends TestCase
             ->with('/api/exchanges/%2f/test_exchange/bindings/source')->andReturn([
                 ['routing_key' => 'not_match', 'arguments' => []]
             ]);
-        $versionReader = new StructureVersionListReader(
+        $versionListReader = new StructureVersionListReader(
             $this->mockConnector,
             new ArrayConfig(['exchange' => 'test_exchange']),
             new NullLogger
         );
 
-        $this->assertNull($versionReader->read('test_id'));
+        $this->assertNull($versionListReader->read('test_id'));
     }
 
     public function testRead()
@@ -85,7 +97,7 @@ class StructureVersionListReaderTest extends TestCase
                 ['routing_key' => 'test_id', 'arguments' => ['version' => 2]],
                 ['routing_key' => 'test_id', 'arguments' => ['version' => 1]]
             ]);
-        $versionReader = new StructureVersionListReader(
+        $versionListReader = new StructureVersionListReader(
             $this->mockConnector,
             new ArrayConfig(['exchange' => 'test_exchange']),
             new NullLogger
@@ -95,7 +107,7 @@ class StructureVersionListReaderTest extends TestCase
             new StructureVersion(['version' => 1]),
             new StructureVersion(['version' => 2])
         ]);
-        $this->assertEquals($expectedList, $versionReader->read('test_id'));
+        $this->assertEquals($expectedList, $versionListReader->read('test_id'));
     }
 
     public function testReadAll()
@@ -105,7 +117,7 @@ class StructureVersionListReaderTest extends TestCase
                 ['routing_key' => 'test_id', 'arguments' => ['version' => 2]],
                 ['routing_key' => 'test_id', 'arguments' => ['version' => 1]]
             ]);
-        $versionReader = new StructureVersionListReader(
+        $versionListReader= new StructureVersionListReader(
             $this->mockConnector,
             new ArrayConfig(['exchange' => 'test_exchange']),
             new NullLogger
@@ -115,6 +127,6 @@ class StructureVersionListReaderTest extends TestCase
             new StructureVersion(['version' => 1]),
             new StructureVersion(['version' => 2])
         ]);
-        $this->assertEquals([$expectedList], $versionReader->readAll());
+        $this->assertEquals([$expectedList], $versionListReader->readAll());
     }
 }

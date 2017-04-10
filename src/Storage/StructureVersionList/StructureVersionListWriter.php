@@ -16,7 +16,7 @@ class StructureVersionListWriter extends RabbitMqStorage implements StorageWrite
     {
         Assertion::isInstanceOf($structureVersionList, StructureVersionList::CLASS);
 
-        $exchange = $this->getConfig()->get('exchange');
+        $exchange = $this->getExchange();
         $channel = $this->connector->getConnection()->channel();
 
         // delete existing bindings by identifier & arguments
